@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct FeedbackView: View {
     @State private var feedbackType = 0
@@ -6,6 +7,9 @@ struct FeedbackView: View {
     @State private var includeScreenshot = false
     @State private var showingImagePicker = false
     @State private var screenshot: UIImage?
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var showError = false
+    @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
     
     let feedbackTypes = ["Bug Report", "Feature Request", "General Feedback"]
@@ -30,22 +34,38 @@ struct FeedbackView: View {
                 Toggle("Include Screenshot", isOn: $includeScreenshot)
                 
                 if includeScreenshot {
-                    Button(action: {
-                        showingImagePicker = true
-                    }) {
-                        HStack {
-                            if let screenshot = screenshot {
-                                Image(uiImage: screenshot)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 100)
+                    HStack {
+                        Button(action: {
+                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                sourceType = .camera
+                                showingImagePicker = true
                             } else {
-                                Image(systemName: "photo")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.gray)
-                                    .frame(height: 100)
+                                errorMessage = "Camera is not available on this device"
+                                showError = true
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "camera.fill")
+                                Text("Take Photo")
                             }
                         }
+                        
+                        Button(action: {
+                            sourceType = .photoLibrary
+                            showingImagePicker = true
+                        }) {
+                            HStack {
+                                Image(systemName: "photo.fill")
+                                Text("Choose Photo")
+                            }
+                        }
+                    }
+                    
+                    if let screenshot = screenshot {
+                        Image(uiImage: screenshot)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 100)
                     }
                 }
             }
@@ -60,8 +80,14 @@ struct FeedbackView: View {
             }
         }
         .navigationTitle("Send Feedback")
-        .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(image: $screenshot)
+        // .sheet(isPresented: $showingImagePicker) {
+        //     ImagePicker(image: $screenshot, sourceType: sourceType)
+        //         .ignoresSafeArea()
+        // }
+        .alert("Error", isPresented: $showError, presenting: errorMessage) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { message in
+            Text(message)
         }
     }
     
